@@ -58,12 +58,12 @@ export function Dashboard() {
         <div className="grid w-full items-center gap-10 md:grid-cols-2">
           {/* KIRI: tagline + deskripsi + tombol */}
           <div>
-            <p className="text-3xl font-semibold text-slate-50 md:text-4xl lg:text-5xl">
+            <p className="text-3xl  text-slate-50 md:text-4xl lg:text-5xl">
               Short Your{" "}
-              <span className="font-bold text-emerald-400">Country,</span>
+              <span className="font-bold ">Country,</span>
               <br />
               Short Your{" "}
-              <span className="font-bold text-emerald-400">Governments.</span>
+              <span className="font-bold ">Governments.</span>
             </p>
 
             <p className="mt-4 max-w-xl text-sm text-slate-300 md:text-base">
@@ -75,13 +75,13 @@ export function Dashboard() {
             <div className="mt-6 flex flex-wrap gap-3">
               <a
                 href="/markets"
-                className="rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-emerald-400 transition-colors"
+                className="rounded-full bg-white px-5 py-2.5 text-sm text-black hover:bg-emerald-400 transition-colors"
               >
                 Start Trading
               </a>
               <a
                 href="/markets"
-                className="rounded-full border border-slate-700 px-5 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-800 transition-colors"
+                className="rounded-full border-2 border-slate-500 px-5 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-800 transition-colors"
               >
                 View Markets
               </a>

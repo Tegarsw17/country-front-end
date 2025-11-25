@@ -11,7 +11,7 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur">
+    <header className="sticky top-0 z-50 py-2 backdrop-blur">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2">
@@ -35,8 +35,8 @@ export function Navbar() {
                 className={[
                   "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                   isActive
-                    ? "bg-emerald-500/90 text-slate-950"
-                    : "text-slate-300 hover:bg-slate-800 hover:text-slate-50",
+                    ? "bg-white font-semibold text-slate-950"
+                    : "text-slate-100 hover:bg-slate-800 hover:text-slate-50",
                 ].join(" ")}
               >
                 {item.label}
