@@ -31,8 +31,16 @@ const flagDefinitions = [
   { name: "UK", colors: ["#012169", "#ffffff", "#c8102e"] },
 ];
 
-// pusat “gravitasi” bola di kanan layar (x=6)
-const HOME_CENTER = new THREE.Vector3(6, 0, 0);
+// Target center where balls tend to cluster.
+// Desktop: bias to the right (x=6, y=0)
+// Mobile: bring the cluster lower and centered (x=0, y≈2)
+function getHomeCenterVec() {
+  const isMobile =
+    typeof window !== "undefined" &&
+    (window.matchMedia?.("(max-width: 640px)")?.matches || window.innerWidth <= 640);
+  // Move the cluster further down on phones so it isn't too high
+  return isMobile ? new THREE.Vector3(0, 2, 0) : new THREE.Vector3(6, 0, 0);
+}
 
 // util: gambar stripes horizontal
 function drawHorizontalStripes(ctx: CanvasRenderingContext2D, size: number, colors: string[]) {
@@ -305,6 +313,13 @@ function Sphere({
 }) {
   const api = useRef<any>(null);
   const ref = useRef<any>(null);
+  const HOME_CENTER = useMemo(() => getHomeCenterVec(), []);
+
+  // Make spheres smaller on phones so they don't dominate the screen
+  const isMobile =
+    typeof window !== "undefined" &&
+    (window.matchMedia?.("(max-width: 640px)")?.matches || window.innerWidth <= 640);
+  const SPHERE_RADIUS = isMobile ? 0.9 : 1.2;
 
   // Posisi awal: bias ke kanan (x selalu positif)
   const pos = useMemo(() => {
@@ -343,10 +358,10 @@ function Sphere({
       ref={api}
       colliders={false}
     >
-      <BallCollider args={[1]} />
+      <BallCollider args={[SPHERE_RADIUS]} />
       <mesh ref={ref} castShadow receiveShadow>
         {/* Reduce segment count to lower fragment load without large quality loss */}
-        <sphereGeometry args={[1.2, 32, 32]} />
+        <sphereGeometry args={[SPHERE_RADIUS, 32, 32]} />
         <meshStandardMaterial
           // warna base netral, semua pattern dari texture
           color="#ffffff"

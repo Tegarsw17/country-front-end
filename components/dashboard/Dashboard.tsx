@@ -5,15 +5,15 @@ import { GlobeHero } from "./GlobeHero";
 
 export function Dashboard() {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden po bg-amber-50">
+    <div className="relative min-h-screen w-full overflow-hidden po bg-transparent">
       {/* Background bola full-screen, fixed di belakang */}
       
 
       {/* Gradient supaya teks kebaca, tapi pointer tembus ke bawah */}
-  <div className="pointer-events-none absolute inset-0 from-black via-black/70 to-black/10 bg-white" />
+  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
 
       {/* Layer teks di kiri, pointer tembus kecuali di konten dalamnya */}
-      <div className="relative z-10 flex min-h-screen items-center ">
+      <div className="relative z-10 flex min-h-screen items-end sm:items-center pb-10 sm:pb-0">
         <GlobeHero />
         <div className="px-6 py-16 md:px-16 lg:px-24 pointer-events-auto">
           <div className="max-w-xl pointer-events-none">

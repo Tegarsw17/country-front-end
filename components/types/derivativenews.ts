@@ -1,11 +1,20 @@
-// types/derivativeNews.ts
+// types/derivativenews.ts
 
-export interface DerivativeNews {
-    id: string;
+// Bentuk data mentah dari backend (Ponder / Postgres)
+export type NewsCardRow = {
+    id: number;
     title: string;
-    summary: string;
-    symbol: string;     // e.g. "BTCUSD", "XAUUSD"
-    source?: string;
-    time?: string;
+    imageUrl: string;
+    country: string;
+    description: string;
+};
+
+// Bentuk data yang dipakai SwipeCard di frontend
+export type DerivativeNews = {
+    id: number;
+    title: string;
+    description: string;      // diambil dari description
     imageUrl?: string;
-}
+    country: string;
+    symbol: string;       //
+};

@@ -17,10 +17,10 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-slate-950 text-slate-100">
         <Web3Provider>
-          <Navbar />
-          <main className="mx-auto max-w-7xl px-4 pb-10 pt-6">
-            {children}
-          </main>
+            <Navbar />
+            <main className="mx-auto max-w-7xl px-4 pb-10 pt-6">
+              {children}
+            </main>
         </Web3Provider>
       </body>
     </html>
