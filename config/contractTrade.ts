@@ -1,6 +1,5 @@
 // config/contractTrade.ts
 import { parseAbi } from 'viem'
-import { mantleTestnet } from 'viem/chains'
 
 export const COUNTRY_TRADING_ADDRESS =
     '0x57Df258deA444B94a82669DF1E6fbFD35BED8cF0' as `0x${string}`
