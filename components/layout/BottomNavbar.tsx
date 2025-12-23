@@ -9,7 +9,7 @@ export default function BottomNavbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-black/80 backdrop-blur-md">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-black/80 backdrop-blur-md md:hidden">
       <div className="mx-auto flex max-w-md justify-around px-6 py-3">
         {bottomNav.map((item) => {
           const isActive = pathname === item.href;
