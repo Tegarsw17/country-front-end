@@ -32,6 +32,7 @@ interface SwipeCardProps {
   onLong?: (news: DerivativeNews, tradeAmount: number) => void;
   onShort?: (news: DerivativeNews, tradeAmount: number) => void;
   onSkip?: (news: DerivativeNews) => void;
+  isLoading?:boolean;
 }
 
 function classNames(...classes: (string | false | null | undefined)[]) {
@@ -67,11 +68,13 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
   onLong,
   onShort,
   onSkip,
+  isLoading,
 }) => {
   const [shuffledNews, setShuffledNews] = useState<DerivativeNews[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [filterCountry, setFilterCountry] = useState<string | null>(null);
   const [lastAction, setLastAction] = useState<SwipeAction | null>(null);
+  const [loading,setLoading] = useState(false);
 
   const tradeAmounts = [1, 5, 10] as const;
   const [tradeIndex, setTradeIndex] = useState(1);
@@ -112,6 +115,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
 
   const handleSwipeComplete = useCallback(
     (action: SwipeAction) => {
+      if (isLoading) return;
       const current = displayedNews[activeIndex];
       const cardElement = cardRef.current;
       if (!current || !cardElement) return;
@@ -159,7 +163,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
         },
       });
     },
-    [activeIndex, displayedNews, onLong, onShort, onSkip, tradeAmount]
+    [isLoading,activeIndex, displayedNews, onLong, onShort, onSkip, tradeAmount]
   );
 
   useLayoutEffect(() => {
@@ -311,7 +315,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
                     className="rounded-full w-3 h-3"
                   />
                 )}
-                {c}
+                <div className="hidden md:block">{c}</div>
               </button>
             );
           })}
@@ -319,10 +323,10 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
       </div>
 
       {/* 2. CARD AREA (Middle - Flexible) */}
-      <div className="relative flex-1 w-full flex justify-center items-center perspective-1000 min-h-0 my-4">
+      <div className="relative flex-1 w-full flex justify-center items-center perspective-1000 min-h-0">
         <div
           ref={cardRef}
-          className="relative w-[90%] sm:w-[360px] aspect-[3/4.2] max-h-full bg-[#000000] border border-neutral-800/80 rounded-[2rem] shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing will-change-transform"
+          className="relative w-[300px] md:w-[360px] aspect-[3/4.2] max-h-full bg-[#000000] border border-neutral-800/80 rounded-[2rem] shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing will-change-transform"
         >
           <div
             data-overlay
@@ -363,7 +367,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
               className="w-full h-full object-cover pointer-events-none"
             />
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-[#000000]" />
-            <div className="absolute top-4 left-4 z-40 bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-3 py-1 flex items-center gap-2">
+            <div className="absolute top-4 left-4 z-40 bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-3 py-2 flex items-center gap-2">
               {code && (
                 <ReactCountryFlag
                   countryCode={code}
@@ -401,8 +405,12 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
       <div className="flex items-center gap-6 pb-2 shrink-0 z-20">
         {/* SHORT (Left) */}
         <button
+          disabled={isLoading}
           onClick={() => handleSwipeComplete("short")}
-          className="group w-14 h-14 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-lg transition-all active:scale-90 hover:bg-rose-950/30 hover:border-rose-500/50"
+          className={classNames(
+            "group w-14 h-14 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-lg transition-all active:scale-90 hover:bg-rose-950/30 hover:border-rose-500/50",
+            isLoading && "opacity-50 pointer-events-none"
+          )}
         >
           <ArrowLeft className="w-6 h-6 text-rose-500 group-hover:text-rose-400 transition-colors" />
         </button>
@@ -417,12 +425,24 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
 
         {/* LONG (Right) */}
         <button
-          onClick={() => handleSwipeComplete("long")}
-          className="group w-14 h-14 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-lg transition-all active:scale-90 hover:bg-emerald-950/30 hover:border-emerald-500/50"
+          disabled={isLoading}
+          onClick={() => handleSwipeComplete("short")}
+          className={classNames(
+            "group w-14 h-14 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-lg transition-all active:scale-90 hover:bg-emerald-950/30 hover:border-emerald-500/50",
+            isLoading && "opacity-50 pointer-events-none"
+          )}
         >
           <ArrowRight className="w-6 h-6 text-emerald-500 group-hover:text-emerald-400 transition-colors" />
         </button>
       </div>
+      {isLoading && (
+        <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent" />
+          <p className="mt-3 text-xs text-neutral-300">
+            Waiting wallet confirmation…
+          </p>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,6 +3,7 @@
 import { SwipeCard } from "@/components/layout/SwipeCard";
 import type { DerivativeNews } from "@/components/types/derivativenews";
 import { useTrade } from "@/hooks/useTrade";
+import { useState } from "react";
 
 // Helper yang diperbarui (Sudah support Singapore & logic lebih aman)
 function getCountryCode(country: string | undefined | null): string | null {
@@ -27,7 +28,8 @@ export default function SwipeCardClient({
 }: {
   newsList: DerivativeNews[];
 }) {
-  const { openLong, openShort } = useTrade();
+  const { openPosition } = useTrade();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLong = async (news: DerivativeNews, amount: number) => {
     const countryCode = getCountryCode(news.country);
@@ -41,7 +43,14 @@ export default function SwipeCardClient({
     }
     
     // Kirim amount sebagai string ke hook
-    await openLong(amount.toString(), countryCode);
+    try {
+      setIsLoading(true); // ⬅️ sebelum wallet muncul
+      await openPosition("LONG", countryCode, amount.toString());
+    } catch (err) {
+      console.error("LONG failed:", err);
+    } finally {
+      setIsLoading(false); // ⬅️ wallet reject / tx done
+    }
   };
 
   const handleShort = async (news: DerivativeNews, amount: number) => {
@@ -55,14 +64,22 @@ export default function SwipeCardClient({
       return;
     }
 
-    await openShort(amount.toString(), countryCode);
+    try {
+      setIsLoading(true);
+      await openPosition("SHORT", countryCode, amount.toString());
+    } catch (err) {
+      console.error("SHORT failed:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <SwipeCard 
       newsList={newsList} 
       onLong={handleLong} 
-      onShort={handleShort} 
+      onShort={handleShort}
+      isLoading={isLoading}
     />
   );
 }
