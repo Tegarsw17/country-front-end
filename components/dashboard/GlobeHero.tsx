@@ -1,49 +1,34 @@
 // components/dashboard/GlobeHero.tsx
-// @ts-nocheck
 "use client";
 
 import * as THREE from "three";
 import { useRef, useReducer, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
-import { Physics, RigidBody, BallCollider } from "@react-three/rapier";
+import { Physics, RigidBody, BallCollider, RapierRigidBody } from "@react-three/rapier";
 import { Effects } from "./Effects";
 
-const accents = ["#ff4060", "#ffcc00", "#20ffa0", "#4060ff"];
+// --- TEXTURE UTILS (Tetap sama, dirapikan Type-nya) ---
 
-// sekarang shuffle cuma dipakai buat jumlah bola + sedikit variasi material,
-// warna utama tetap dari texture bendera
-const shuffle = (accent = 0) => [
-  { roughness: 0.25, metalness: 0.55 },
-  { roughness: 0.2, metalness: 0.6 },
-  { roughness: 0.15, metalness: 0.6 },
-  { roughness: 0.25, metalness: 0.5 },
-  { roughness: 0.2, metalness: 0.55 },
-  { roughness: 0.2, metalness: 0.55 },
-];
+const textureCache: Map<string, THREE.Texture> = new Map();
 
-const flagDefinitions = [
+interface FlagDef {
+  name: string;
+  colors: string[];
+}
+
+const flagDefinitions: FlagDef[] = [
   { name: "Indonesia", colors: ["#ff0000", "#ffffff"] },
   { name: "USA", colors: ["#3c3b6e", "#ffffff", "#b22234"] },
   { name: "Germany", colors: ["#000000", "#dd0000", "#ffce00"] },
   { name: "France", colors: ["#0055a4", "#ffffff", "#ef4135"] },
   { name: "Italy", colors: ["#009246", "#ffffff", "#ce2b37"] },
   { name: "UK", colors: ["#012169", "#ffffff", "#c8102e"] },
+  { name: "Japan", colors: ["#ffffff", "#ff0000"] }, 
+  { name: "Singapore", colors: ["#ef3340", "#ffffff"] }, // Mock SGP
 ];
 
-// Target center where balls tend to cluster.
-// Desktop: bias to the right (x=6, y=0)
-// Mobile: bring the cluster lower and centered (x=0, y≈2)
-function getHomeCenterVec() {
-  const isMobile =
-    typeof window !== "undefined" &&
-    (window.matchMedia?.("(max-width: 640px)")?.matches || window.innerWidth <= 640);
-  // Move the cluster further down on phones so it isn't too high
-  return isMobile ? new THREE.Vector3(0, 2, 0) : new THREE.Vector3(6, 0, 0);
-}
-
-// util: gambar stripes horizontal
-function drawHorizontalStripes(ctx: CanvasRenderingContext2D, size: number, colors: string[]) {
+function drawHorizontalStripes(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, size: number, colors: string[]) {
   const stripeHeight = size / colors.length;
   colors.forEach((col, index) => {
     ctx.fillStyle = col;
@@ -51,8 +36,7 @@ function drawHorizontalStripes(ctx: CanvasRenderingContext2D, size: number, colo
   });
 }
 
-// util: gambar stripes vertikal
-function drawVerticalStripes(ctx: CanvasRenderingContext2D, size: number, colors: string[]) {
+function drawVerticalStripes(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, size: number, colors: string[]) {
   const stripeWidth = size / colors.length;
   colors.forEach((col, index) => {
     ctx.fillStyle = col;
@@ -60,249 +44,71 @@ function drawVerticalStripes(ctx: CanvasRenderingContext2D, size: number, colors
   });
 }
 
-// Simple in-memory cache to avoid recreating textures across re-renders/mounts
-const textureCache: Map<string, THREE.Texture> = new Map();
-
-// bikin texture bendera sesuai flag.name
-function createFlagTexture(flag: { name: string; colors: string[] } | undefined) {
+function createFlagTexture(flag: FlagDef | undefined): THREE.Texture | null {
   if (!flag) return null;
 
-  // return cached texture if present
   const cacheKey = `${flag.name}:${flag.colors.join(",")}`;
   const cached = textureCache.get(cacheKey);
   if (cached) return cached;
 
   const size = 512;
-  // Prefer OffscreenCanvas if available for better performance in some browsers
-  const canvas: HTMLCanvasElement | OffscreenCanvas =
-    typeof (globalThis as any).OffscreenCanvas !== "undefined"
-      ? new (globalThis as any).OffscreenCanvas(size, size)
-      : (() => {
-          const c = document.createElement("canvas");
-          c.width = size;
-          c.height = size;
-          return c;
-        })();
+  // @ts-ignore: OffscreenCanvas check
+  const canvas = typeof  OffscreenCanvas !== "undefined"
+    // @ts-ignore
+    ? new OffscreenCanvas(size, size)
+    : document.createElement("canvas");
+  
+  if (typeof document !== 'undefined' && canvas instanceof HTMLCanvasElement) {
+      canvas.width = size;
+      canvas.height = size;
+  }
 
-  // @ts-ignore getContext types differ between Canvas and OffscreenCanvas
-  const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d") as CanvasRenderingContext2D | null; // Simplifikasi type
   if (!ctx) return null;
 
   const { name, colors } = flag;
 
-  switch (name) {
-    case "Indonesia": {
-      // merah - putih horizontal
+  // Logic gambar bendera (Sama seperti sebelumnya, disederhanakan switch-nya)
+  if (["Indonesia", "Germany", "Singapore"].includes(name)) {
       drawHorizontalStripes(ctx, size, colors);
-      break;
-    }
-
-    case "Japan": {
-      // putih dengan lingkaran merah
-      const [bg, circle] = colors;
-      ctx.fillStyle = bg ?? "#ffffff";
-      ctx.fillRect(0, 0, size, size);
-
-      ctx.fillStyle = circle ?? "#ff0000";
-      const radius = size * 0.2;
-      ctx.beginPath();
-      // start angle 0 for a full circle (fix minor visual glitch)
-      ctx.arc(size / 2, size / 2, radius, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-
-    case "Germany": {
-      // hitam - merah - kuning horizontal
-      drawHorizontalStripes(ctx, size, colors);
-      break;
-    }
-
-    case "France":
-    case "Italy": {
-      // tricolor vertikal
+  } else if (["France", "Italy"].includes(name)) {
       drawVerticalStripes(ctx, size, colors);
-      break;
-    }
-
-    case "USA": {
-      // stripes + canton biru + "bintang"
+  } else if (name === "Japan") {
+      ctx.fillStyle = colors[0];
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = colors[1];
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size * 0.25, 0, Math.PI * 2);
+      ctx.fill();
+  } else if (name === "USA") {
+      // Simplified US Flag
       const [blue, white, red] = colors;
-      const stripeCount = 13;
-      const stripeHeight = size / stripeCount;
-
-      for (let i = 0; i < stripeCount; i++) {
-        ctx.fillStyle = i % 2 === 0 ? (red ?? "#b22234") : (white ?? "#ffffff");
-        ctx.fillRect(0, i * stripeHeight, size, stripeHeight);
-      }
-
-      const cantonWidth = size * 0.45;
-      const cantonHeight = stripeHeight * 7;
-      ctx.fillStyle = blue ?? "#3c3b6e";
-      ctx.fillRect(0, 0, cantonWidth, cantonHeight);
-
-      // bintang simplifikasi: titik-titik putih
-      ctx.fillStyle = white ?? "#ffffff";
-      const rows = 5;
-      const cols = 6;
-      const starRadius = stripeHeight * 0.2;
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const x = (c + 0.5) * (cantonWidth / cols);
-          const y = (r + 0.5) * (cantonHeight / rows);
-          ctx.beginPath();
-          ctx.arc(x, y, starRadius, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      break;
-    }
-
-    case "Brazil": {
-      // hijau, diamond kuning, lingkaran biru
-      ctx.fillStyle = colors[0] ?? "#009b3a"; // hijau
+      drawHorizontalStripes(ctx, size, Array(13).fill(null).map((_, i) => i % 2 === 0 ? red : white));
+      ctx.fillStyle = blue;
+      ctx.fillRect(0, 0, size * 0.45, size * 0.54); // Canton
+  } else if (name === "UK") {
+      ctx.fillStyle = colors[0];
       ctx.fillRect(0, 0, size, size);
-
-      // diamond kuning
-      ctx.fillStyle = colors[1] ?? "#ffdf00";
-      ctx.beginPath();
-      ctx.moveTo(size / 2, size * 0.12);
-      ctx.lineTo(size * 0.86, size / 2);
-      ctx.lineTo(size / 2, size * 0.88);
-      ctx.lineTo(size * 0.14, size / 2);
-      ctx.closePath();
-      ctx.fill();
-
-      // lingkaran biru
-      ctx.fillStyle = colors[2] ?? "#002776";
-      ctx.beginPath();
-      ctx.arc(size / 2, size / 2, size * 0.22, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-
-    case "UK": {
-      // background biru
-      ctx.fillStyle = colors[0] ?? "#012169";
-      ctx.fillRect(0, 0, size, size);
-
-      // white cross
-      ctx.fillStyle = colors[1] ?? "#ffffff";
-      const crossWidth = size * 0.28;
-      const crossEdge = size * 0.09;
-
-      // horizontal
-      ctx.fillRect(0, size / 2 - crossWidth / 2, size, crossWidth);
-      // vertical
-      ctx.fillRect(size / 2 - crossWidth / 2, 0, crossWidth, size);
-
-      // red cross (lebih kecil)
-      ctx.fillStyle = colors[2] ?? "#c8102e";
-      const redWidth = size * 0.14;
-      ctx.fillRect(0, size / 2 - redWidth / 2, size, redWidth);
-      ctx.fillRect(size / 2 - redWidth / 2, 0, redWidth, size);
-
-      // (diagonal dibikin simple / bisa ditambah kalau mau super detail)
-      break;
-    }
-
-    default: {
-      // fallback: stripes horizontal dari warna yang ada
+      ctx.fillStyle = colors[1]; // White cross
+      ctx.fillRect(size/2 - size*0.15, 0, size*0.3, size);
+      ctx.fillRect(0, size/2 - size*0.15, size, size*0.3);
+      ctx.fillStyle = colors[2]; // Red cross
+      ctx.fillRect(size/2 - size*0.08, 0, size*0.16, size);
+      ctx.fillRect(0, size/2 - size*0.08, size, size*0.16);
+  } else {
       drawHorizontalStripes(ctx, size, colors);
-      break;
-    }
   }
 
   const tex = new THREE.CanvasTexture(canvas as any);
-  tex.needsUpdate = true;
-  // mild filtering for UI background usage
-  tex.anisotropy = 1;
+  tex.colorSpace = THREE.SRGBColorSpace; // Penting agar warna akurat
+  tex.anisotropy = 4;
   textureCache.set(cacheKey, tex);
   return tex;
 }
 
-export function GlobeHero() {
-  const [accent, click] = useReducer(
-    (state) => (state + 1) % accents.length,
-    0
-  );
-  const connectors = useMemo(() => shuffle(accent), [accent]);
+// --- COMPONENTS ---
 
-  return (
-    <div className="fixed inset-0 -z-10">
-      <Canvas
-        style={{ width: "100%", height: "100%" }}
-        flat
-        shadows
-        onClick={click}
-        dpr={[1, 1.5]}
-        gl={{ antialias: false, powerPreference: "high-performance" }}
-        camera={{ position: [3, 0, 26], fov: 24, near: 10, far: 60 }}
-      >
-        <color attach="background" args={["#020617"]} />
-
-        <ambientLight intensity={0.7} />
-        <directionalLight
-          position={[12, 10, 10]}
-          intensity={1.8}
-          castShadow
-        />
-
-        <Physics timeStep="vary" gravity={[0, 0, 0]}>
-          <Pointer />
-          {connectors.map((props, i) => {
-            const flag = flagDefinitions[i % flagDefinitions.length];
-            return <Sphere key={i} {...props} flag={flag} />;
-          })}
-        </Physics>
-
-        <Environment resolution={256}>
-          <group rotation={[-Math.PI / 3, 0, 1]}>
-            <Lightformer
-              form="circle"
-              intensity={100}
-              rotation-x={Math.PI / 2}
-              position={[0, 5, -9]}
-              scale={2}
-            />
-            <Lightformer
-              form="circle"
-              intensity={2}
-              rotation-y={Math.PI / 2}
-              position={[-5, 1, -1]}
-              scale={2}
-            />
-            <Lightformer
-              form="circle"
-              intensity={2}
-              rotation-y={Math.PI / 2}
-              position={[-5, -1, -1]}
-              scale={2}
-            />
-            <Lightformer
-              form="circle"
-              intensity={2}
-              rotation-y={-Math.PI / 2}
-              position={[10, 1, 0]}
-              scale={8}
-            />
-            <Lightformer
-              form="ring"
-              color="#4060ff"
-              intensity={80}
-              onUpdate={(self) => self.lookAt(0, 0, 0)}
-              position={[10, 10, 0]}
-              scale={10}
-            />
-          </group>
-        </Environment>
-
-        <Effects />
-      </Canvas>
-    </div>
-  );
-}
-
+// Komponen bola individu
 function Sphere({
   position,
   children,
@@ -310,42 +116,47 @@ function Sphere({
   r = THREE.MathUtils.randFloatSpread,
   flag,
   ...props
+}: {
+    position?: [number, number, number];
+    vec?: THREE.Vector3;
+    r?: (range: number) => number;
+    flag?: FlagDef;
+    children?: React.ReactNode;
+    [key: string]: any;
 }) {
-  const api = useRef<any>(null);
-  const ref = useRef<any>(null);
-  const HOME_CENTER = useMemo(() => getHomeCenterVec(), []);
+  const api = useRef<RapierRigidBody>(null);
+  const meshRef = useRef<THREE.Mesh>(null);
+  const { viewport } = useThree(); // Akses ukuran layar real-time
 
-  // Make spheres smaller on phones so they don't dominate the screen
-  const isMobile =
-    typeof window !== "undefined" &&
-    (window.matchMedia?.("(max-width: 640px)")?.matches || window.innerWidth <= 640);
-  const SPHERE_RADIUS = isMobile ? 0.9 : 1.2;
-
-  // Posisi awal: bias ke kanan (x selalu positif)
-  const pos = useMemo(() => {
-    const x = Math.abs(r(10)) + 2; // 2–12
-    const y = r(8);                // -8–8
-    const z = r(10);               // -10–10
-    return position || [x, y, z];
-  }, []);
+  // 1. Tentukan Titik Tengah (Attractor) secara Dinamis
+  // Jika layar lebar (> 10 unit threejs), tarik ke kanan.
+  // Jika layar sempit (mobile), tarik ke atas sedikit agar tidak tertutup button.
+  const attractor = useMemo(() => {
+      if (viewport.width > 12) {
+          return new THREE.Vector3(viewport.width / 3, 0, 0); // Kanan Desktop
+      } else {
+          return new THREE.Vector3(0, 2, -2); // Tengah Atas Mobile
+      }
+  }, [viewport.width]);
 
   const flagTexture = useMemo(() => createFlagTexture(flag), [flag]);
 
   useFrame((state, delta) => {
     delta = Math.min(0.1, delta);
-
+    
+    // Physics: Tarik bola ke arah attractor
     if (api.current) {
       const t = api.current.translation();
-      // arah menuju HOME_CENTER (kanan)
-      vec
-        .set(t.x - HOME_CENTER.x, t.y - HOME_CENTER.y, t.z - HOME_CENTER.z)
-        .multiplyScalar(-0.12); // - → dorong ke center
-      api.current.applyImpulse(vec);
+      vec.set(t.x - attractor.x, t.y - attractor.y, t.z - attractor.z).multiplyScalar(-0.15); // Kekuatan tarikan
+      api.current.applyImpulse(vec, true);
+      // Tambahkan random drag biar natural
+      api.current.setLinearDamping(3); 
     }
 
-    // kalau mau bola spinning:
-    if (ref.current) {
-      ref.current.rotation.y += delta * 0.3;
+    // Visual: Rotasi pelan
+    if (meshRef.current) {
+       meshRef.current.rotation.y += delta * 0.2;
+       meshRef.current.rotation.x += delta * 0.1;
     }
   });
 
@@ -353,21 +164,21 @@ function Sphere({
     <RigidBody
       linearDamping={4}
       angularDamping={1}
-      friction={0.1}
-      position={pos}
+      friction={0.2}
+      restitution={0.8} // Memantul dikit
+      position={position || [r(10), r(10), r(10)]}
       ref={api}
       colliders={false}
     >
-      <BallCollider args={[SPHERE_RADIUS]} />
-      <mesh ref={ref} castShadow receiveShadow>
-        {/* Reduce segment count to lower fragment load without large quality loss */}
-        <sphereGeometry args={[SPHERE_RADIUS, 32, 32]} />
+      <BallCollider args={[1]} />
+      <mesh ref={meshRef} castShadow receiveShadow>
+        <sphereGeometry args={[1, 32, 32]} />
         <meshStandardMaterial
-          // warna base netral, semua pattern dari texture
           color="#ffffff"
-          map={flagTexture ?? undefined}
-          metalness={props.metalness ?? 0.55}
-          roughness={props.roughness ?? 0.25}
+          map={flagTexture || undefined}
+          metalness={0.6} // Lebih metalik biar elegan di dark mode
+          roughness={0.2} // Lebih glossy
+          envMapIntensity={1.5}
         />
         {children}
       </mesh>
@@ -376,24 +187,78 @@ function Sphere({
 }
 
 function Pointer({ vec = new THREE.Vector3() }) {
-  const ref = useRef<any>(null);
-  useFrame(({ mouse, viewport }) =>
+  const ref = useRef<RapierRigidBody>(null);
+  const { viewport } = useThree();
+  
+  useFrame(({ mouse }) => {
+    // Mouse physics agar bisa nendang bola
     ref.current?.setNextKinematicTranslation(
       vec.set(
         (mouse.x * viewport.width) / 2,
         (mouse.y * viewport.height) / 2,
         0
       )
-    )
-  );
+    );
+  });
+  
   return (
-    <RigidBody
-      position={[0, 0, 0]}
-      type="kinematicPosition"
-      colliders={false}
-      ref={ref}
-    >
-      <BallCollider args={[1]} />
+    <RigidBody position={[0, 0, 0]} type="kinematicPosition" colliders={false} ref={ref}>
+      <BallCollider args={[1.5]} />
     </RigidBody>
+  );
+}
+
+export function GlobeHero() {
+  // Jumlah bola
+  const spheres = useMemo(() => new Array(8).fill(null).map((_, i) => ({
+      flag: flagDefinitions[i % flagDefinitions.length],
+      // Spawn acak tapi cenderung di kanan
+      pos: [Math.random() * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 5] as [number, number, number]
+  })), []);
+
+  return (
+    <div className="fixed inset-0 -z-10 bg-[#000000]"> 
+      <Canvas
+        style={{ width: "100%", height: "100%" }}
+        flat
+        shadows
+        dpr={[1, 1.5]} // Performance optimization
+        gl={{ antialias: false }}
+        camera={{ position: [0, 0, 20], fov: 35, near: 1, far: 60 }} // FOV diperlebar
+      >
+        {/* -- Lighting: Mood Gelap tapi Glossy -- */}
+        {/* Ambient minim agar hitam pekat */}
+        <ambientLight intensity={0.2} /> 
+        
+        {/* Lampu utama dari atas kanan */}
+        <directionalLight
+          position={[10, 10, 5]}
+          intensity={2}
+          castShadow
+          shadow-mapSize={[1024, 1024]}
+        />
+        
+        {/* Rim light dari belakang bawah untuk siluet */}
+        <spotLight position={[-10, -10, -5]} intensity={3} color="#10b981" /> 
+
+        <Physics gravity={[0, 0, 0]}>
+          <Pointer />
+          {spheres.map((s, i) => (
+            <Sphere key={i} position={s.pos} flag={s.flag} />
+          ))}
+        </Physics>
+
+        {/* -- Reflections -- */}
+        <Environment resolution={256}>
+          <group rotation={[-Math.PI / 3, 0, 1]}>
+            <Lightformer form="circle" intensity={10} rotation-x={Math.PI / 2} position={[0, 5, -9]} scale={2} />
+            <Lightformer form="ring" color="#10b981" intensity={20} position={[10, 10, 0]} scale={10} />
+          </group>
+        </Environment>
+
+        {/* Post Processing Effect */}
+        <Effects />
+      </Canvas>
+    </div>
   );
 }

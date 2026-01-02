@@ -1,242 +1,119 @@
 "use client";
 
 import { useState } from "react";
+import { useAccount, useReadContract, usePublicClient } from "wagmi";
+import { Wallet } from "lucide-react";
+import { COUNTRY_TRADING_ADDRESS } from "@/config/addresses";
+import { CountryTradingAbi } from "@/config/abis";
 import { usePortfolioStats } from "@/hooks/usePortfolioStats";
-import { useMyPositions } from "@/hooks/useMyPositions";
 import { usePortfolioActions } from "@/hooks/usePortfolioActions";
-import { MantleSepoliaBalance } from "@/components/portofolio/MantleSepoliaBalance";
-import { usePublicClient } from "wagmi";
+
+// Import Komponen Modular
+import { PortfolioHeader } from "@/components/portofolio/PortfolioHeader";
+import { PositionsList } from "@/components/portofolio/PositionsList";
+import { ActionModal } from "@/components/portofolio/ActionModal";
 
 export default function PortfolioPage() {
-  const { walletBalance, protocolCollateral, refetchStats } =
-    usePortfolioStats();
-  const { positions, isLoading: loadingPositions } = useMyPositions();
-  const { deposit, withdraw, isApproving, isPending } = usePortfolioActions();
-  
+  const { address } = useAccount();
   const publicClient = usePublicClient();
-
-  const [amount, setAmount] = useState("");
   
-  const [feedback, setFeedback] = useState<{
-    type: "success" | "error" | "loading";
-    message: string;
-    hash?: string; // Opsional: simpan hash buat link ke explorer
-  } | null>(null);
+  // Custom Hooks
+  const { walletBalance, protocolCollateral, refetchStats } = usePortfolioStats();
+  const { deposit, withdraw, isPending } = usePortfolioActions();
 
-  const handleTransaction = async (actionType: "deposit" | "withdraw") => {
+  interface QueryOptions {
+    pollInterval: number;
+    enabled: boolean;
+  }
+
+  const { 
+    data: positionIds, 
+    refetch: refetchPositions, 
+    isLoading: loadingPositions 
+  } = useReadContract({
+    address: COUNTRY_TRADING_ADDRESS,
+    abi: CountryTradingAbi,
+    functionName: "getUserPositions",
+    args: [address as `0x${string}`],
+    query: { pollInterval: 5000 } as QueryOptions,
+  });
+
+  // Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [txType, setTxType] = useState<"deposit" | "withdraw">("deposit");
+  const [feedback, setFeedback] = useState<any>(null);
+
+  const collateralVal = parseFloat(protocolCollateral || "0");
+  
+  // Handlers
+  const openModal = (type: "deposit" | "withdraw") => {
+    setTxType(type);
     setFeedback(null);
-    
-    if (!amount || parseFloat(amount) <= 0) {
-      setFeedback({ type: "error", message: "Please enter a valid amount." });
-      return;
-    }
+    setModalOpen(true);
+  };
 
+  const handleTransaction = async (amount: string) => {
+    setFeedback(null);
     try {
-      setFeedback({ 
-        type: "loading", 
-        message: "Please sign the transaction in your wallet..." 
-      });
-
-      let txHash;
-
-      if (actionType === "deposit") {
-        txHash = await deposit(amount);
-      } else {
-        txHash = await withdraw(amount);
-      }
+      setFeedback({ type: "loading", message: "Please sign in your wallet..." });
+      const txHash = txType === "deposit" ? await deposit(amount) : await withdraw(amount);
 
       if (txHash) {
-        setFeedback({ 
-          type: "loading", 
-          message: "Transaction sent! Waiting for confirmation...",
-          hash: txHash
-        });
+        setFeedback({ type: "loading", message: "Transaction sent...", hash: txHash });
+        if (publicClient) await publicClient.waitForTransactionReceipt({ hash: txHash });
 
-        if (publicClient) {
-            await publicClient.waitForTransactionReceipt({ 
-                hash: txHash 
-            });
-        }
-
-        setFeedback({
-          type: "success",
-          message: `${actionType === 'deposit' ? 'Deposit' : 'Withdraw'} confirmed successfully!`,
-          hash: txHash
-        });
-
-        setAmount("");
+        setFeedback({ type: "success", message: "Transaction confirmed!", hash: txHash });
         refetchStats();
       }
-
     } catch (err: any) {
-      console.error(err);
-      setFeedback({ 
-        type: "error", 
-        message: err.message || "Transaction failed or rejected." 
-      });
+      setFeedback({ type: "error", message: err.message?.split("\n")[0] || "Failed." });
     }
   };
 
+  // Refresh semua data setelah ada aksi close position
+  const handleUpdate = () => {
+      refetchStats();
+      refetchPositions();
+  }
+
   return (
-    <div className="p-8 space-y-8 text-white bg-slate-900 min-h-screen">
-      <h1 className="text-3xl font-bold">Portfolio</h1>
+    <div className="min-h-screen max-w-5xl mx-auto bg-black text-white font-sans rounded-lg my-4 pb-20">
+      <div className="mx-auto pt-8 px-5">
+        
+        {/* Title */}
+        <header className="mb-6 flex items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-500">
+          <Wallet className="w-5 h-5 text-emerald-500" />
+          <h1 className="text-xl font-bold tracking-tight">Portfolio</h1>
+        </header>
 
-      {/* --- SECTION 1: BALANCES --- */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 bg-slate-800 rounded-lg">
-          <h3 className="text-gray-400">Wallet Balance (USDT)</h3>
-          <p className="text-2xl font-mono">{walletBalance}</p>
-        </div>
-        <div className="p-4 bg-slate-800 rounded-lg border border-blue-500">
-          <h3 className="text-blue-400">Collateral in Protocol</h3>
-          <p className="text-2xl font-mono">{protocolCollateral}</p>
-        </div>
+        {/* 1. Header Section (Balance & Actions) */}
+        <PortfolioHeader 
+            totalValue={collateralVal} // Bisa ditambah PnL jika mau hitung total net worth
+            collateralValue={collateralVal}
+            hasBalance={collateralVal > 0}
+            onDeposit={() => openModal("deposit")}
+            onWithdraw={() => openModal("withdraw")}
+        />
+
+        {/* 2. Positions List Section */}
+        <PositionsList 
+            positionIds={positionIds ? [...positionIds] : []} 
+            isLoading={loadingPositions}
+            onUpdate={handleUpdate}
+        />
+
       </div>
 
-      {/* --- SECTION 2: ACTIONS --- */}
-      <div className="p-6 bg-slate-800 rounded-lg space-y-4">
-        <h3 className="text-xl font-semibold">Manage Collateral</h3>
-
-        {/* FEEDBACK ALERT BOX */}
-        {feedback && (
-          <div
-            className={`p-4 rounded border flex items-center gap-3 ${
-              feedback.type === "success"
-                ? "bg-green-900/30 border-green-500 text-green-200"
-                : feedback.type === "error"
-                ? "bg-red-900/30 border-red-500 text-red-200"
-                : "bg-blue-900/30 border-blue-500 text-blue-200"
-            }`}
-          >
-            {/* Logic Icon Loading */}
-            {feedback.type === "loading" && (
-                <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-            )}
-            
-            <div className="flex flex-col">
-                <span className="font-medium">{feedback.message}</span>
-                {feedback.hash && (
-                    <a 
-                        href={`https://explorer.sepolia.mantle.xyz/tx/${feedback.hash}`} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="text-xs underline opacity-80 hover:opacity-100 mt-1"
-                    >
-                        View on Explorer
-                    </a>
-                )}
-            </div>
-          </div>
-        )}
-
-        <div className="flex gap-4 items-end">
-          <div className="flex-1">
-            <label className="text-sm text-gray-400 mb-1 block">
-              Amount (USDT)
-            </label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="p-3 rounded bg-slate-700 text-white w-full border border-slate-600 focus:border-blue-500 outline-none"
-              placeholder="0.00"
-              disabled={isPending || feedback?.type === "loading"}
-            />
-          </div>
-
-          <button
-            onClick={() => handleTransaction("deposit")}
-            disabled={!amount || isPending || feedback?.type === "loading"}
-            className={`px-6 py-3 rounded font-medium transition-colors ${
-              isPending || feedback?.type === "loading"
-                ? "bg-slate-600 cursor-not-allowed text-gray-400"
-                : "bg-green-600 hover:bg-green-500 text-white cursor-pointer"
-            }`}
-          >
-            {isPending && isApproving
-              ? "Approving..."
-              : feedback?.type === "loading"
-              ? "Processing..."
-              : "Deposit"}
-          </button>
-
-          <button
-            onClick={() => handleTransaction("withdraw")}
-            disabled={!amount || isPending || feedback?.type === "loading"}
-            className={`px-6 py-3 rounded font-medium transition-colors ${
-              isPending || feedback?.type === "loading"
-                ? "bg-slate-600 cursor-not-allowed text-gray-400"
-                : "bg-red-600 hover:bg-red-500 text-white"
-            }`}
-          >
-            {feedback?.type === "loading" ? "Processing..." : "Withdraw"}
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <MantleSepoliaBalance />
-      </div>
-
-      {/* --- SECTION 3: POSITIONS --- */}
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Open Positions</h2>
-        {loadingPositions ? (
-          <p>Loading positions...</p>
-        ) : positions.length === 0 ? (
-          <p className="text-gray-500">No active positions.</p>
-        ) : (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="text-gray-400 border-b border-slate-700">
-                <th className="p-2">Country</th>
-                <th className="p-2">Side</th>
-                <th className="p-2">Size</th>
-                <th className="p-2">Entry Price</th>
-                <th className="p-2">Current Price</th>
-                <th className="p-2">PnL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {positions.map((pos) => {
-                if (!pos) return null;
-                return (
-                  <tr
-                    key={pos.id}
-                    className="border-b border-slate-800 hover:bg-slate-800"
-                  >
-                    <td className="p-2 font-bold">{pos?.countryCode}</td>
-                    <td
-                      className={`p-2 ${
-                        pos.isLong ? "text-green-400" : "text-red-400"
-                      }`}
-                    >
-                      {pos.isLong ? "LONG" : "SHORT"}
-                    </td>
-                    <td className="p-2">{Number(pos.size).toFixed(2)}</td>
-                    <td className="p-2">
-                      ${Number(pos.entryPrice).toFixed(4)}
-                    </td>
-                    <td className="p-2">
-                      ${Number(pos.currentPrice).toFixed(4)}
-                    </td>
-                    <td
-                      className={`p-2 ${
-                        Number(pos.pnl) >= 0 ? "text-green-400" : "text-red-400"
-                      }`}
-                    >
-                      {Number(pos.pnl).toFixed(4)} USDT
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {/* 3. Transaction Modal (Deposit/Withdraw) */}
+      <ActionModal
+        isOpen={modalOpen}
+        type={txType}
+        onClose={() => setModalOpen(false)}
+        balance={txType === "deposit" ? walletBalance : protocolCollateral}
+        onConfirm={handleTransaction}
+        isPending={isPending}
+        feedback={feedback}
+      />
     </div>
   );
 }
