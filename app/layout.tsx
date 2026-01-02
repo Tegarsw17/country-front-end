@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-black text-slate-100`}>
+      <body className="${inter.className} bg-black text-slate-100 pb-20 md:pb-0">
         <Web3Provider>
           <Navbar />
           <main className="mx-auto w-full pb-20 md:pb-0">{children}</main>
