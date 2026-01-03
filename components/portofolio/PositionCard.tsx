@@ -6,13 +6,12 @@ import { formatUnits } from "viem";
 import { Loader2, TrendingUp, TrendingDown } from "lucide-react";
 import { COUNTRY_TRADING_ADDRESS, COUNTRY_REGISTRY_ADDRESS } from "@/config/addresses";
 import { CountryTradingAbi, CountryRegistryAbi, OracleAbi } from "@/config/abis";
-import { PartialCloseModal } from "@/components/portofolio/PartialCloseModal";
+import { PartialCloseModal } from "./PartialCloseModal";
 
 export function PositionCard({ positionId, onUpdate, index }: { positionId: bigint; onUpdate: () => void; index: number }) {
   const { address } = useAccount();
   const [isPartialOpen, setIsPartialOpen] = useState(false);
 
-  // 1. Get Position Detail
   const { data: pos } = useReadContract({
     address: COUNTRY_TRADING_ADDRESS,
     abi: CountryTradingAbi,
@@ -20,8 +19,6 @@ export function PositionCard({ positionId, onUpdate, index }: { positionId: bigi
     args: [address as `0x${string}`, positionId]
   });
 
-  // 2. FETCH NAMA NEGARA (Fix Garbled Text)
-  // Menggunakan getCountry dari Registry, bukan hexToString manual
   const { data: countryData } = useReadContract({
     address: COUNTRY_REGISTRY_ADDRESS,
     abi: CountryRegistryAbi,
@@ -30,23 +27,21 @@ export function PositionCard({ positionId, onUpdate, index }: { positionId: bigi
     query: { enabled: !!pos }
   });
 
-  // 3. FETCH CURRENT PRICE (Untuk hitung PnL Realtime di UI)
-  // Ambil address oracle dari countryData, lalu fetch harga
-  const oracleAddress = countryData ? (countryData as any).priceFeed : undefined;
 
   interface QueryOptions {
-    pollInterval: number;
-    enabled: boolean;
+    enabled?: boolean;
+    pollInterval?: number;
   }
+
+  const oracleAddress = countryData ? (countryData as any).priceFeed : undefined;
   
   const { data: oracleData } = useReadContract({
     address: oracleAddress,
     abi: OracleAbi,
-    functionName: "latestRoundData", // Pastikan sesuai ABI Mock kamu
+    functionName: "latestRoundData",
     query: { enabled: !!oracleAddress, pollInterval: 5000 } as QueryOptions,
   });
 
-  // Action: Full Close
   const { writeContractAsync: closeFull, isPending: isClosingFull } = useWriteContract();
   
   const handleFullClose = async () => {
@@ -63,30 +58,31 @@ export function PositionCard({ positionId, onUpdate, index }: { positionId: bigi
 
   if (!pos || pos.entryPrice === 0n) return null;
 
-  // -- DATA PROCESSING --
   const countryName = countryData ? (countryData as any).name : "Loading...";
   const countryCodeShort = countryName.substring(0, 2).toUpperCase(); 
   
-  const entryPrice = parseFloat(formatUnits(pos.entryPrice, 8));
+  const entryPrice = parseFloat(formatUnits(pos.entryPrice, 18)); 
+
   const size = parseFloat(formatUnits(pos.positionSize, 18));
   const isLong = pos.isLong;
 
-  // -- PNL CALCULATION --
   let pnl = 0;
   let pnlPercent = 0;
-  let currentPrice = entryPrice; // Default jika oracle belum load
+  let currentPrice = entryPrice;
 
   if (oracleData) {
       const priceRaw = (oracleData as any)[1];
       currentPrice = parseFloat(formatUnits(priceRaw, 8));
 
-      // Rumus PnL Sederhana
       if (isLong) {
           pnl = (currentPrice - entryPrice) * size;
       } else {
           pnl = (entryPrice - currentPrice) * size;
       }
-      pnlPercent = ((currentPrice - entryPrice) / entryPrice) * 100 * (isLong ? 1 : -1);
+
+      if (entryPrice !== 0) {
+        pnlPercent = ((currentPrice - entryPrice) / entryPrice) * 100 * (isLong ? 1 : -1);
+      }
   }
 
   const isProfit = pnl >= 0;
@@ -116,8 +112,9 @@ export function PositionCard({ positionId, onUpdate, index }: { positionId: bigi
                             {isLong ? "Long" : "Short"}
                             </span>
                         </div>
-                        <p className="text-xs text-neutral-500 mt-0.5">
-                            Entry: ${entryPrice.toFixed(2)} • Mark: ${currentPrice.toFixed(2)}
+                        <p className="text-xs text-neutral-500 mt-0.5 font-mono">
+                            Entry: ${entryPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})} • 
+                            Mark: ${currentPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}
                         </p>
                     </div>
                 </div>
@@ -126,7 +123,7 @@ export function PositionCard({ positionId, onUpdate, index }: { positionId: bigi
                 <div className="text-right">
                     <div className={`flex items-center justify-end gap-1 font-bold ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
                        {isProfit ? <TrendingUp className="w-3 h-3"/> : <TrendingDown className="w-3 h-3"/>}
-                       <span>{isProfit ? "+" : ""}{pnl.toFixed(2)} USDT</span>
+                       <span>{isProfit ? "+" : ""}{pnl.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT</span>
                     </div>
                     <p className={`text-xs mt-0.5 ${isProfit ? 'text-emerald-500/70' : 'text-rose-500/70'}`}>
                         {isProfit ? "+" : ""}{pnlPercent.toFixed(2)}%

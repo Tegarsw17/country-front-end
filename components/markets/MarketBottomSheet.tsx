@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, TrendingDown, Info } from "lucide-react";
 import { Market } from "@/hooks/useMarkets";
 import PriceChart from "../charts/PriceChart";
 
@@ -14,49 +14,83 @@ export function MarketBottomSheet({ market, price, onTrade }: Props) {
   const isPositive = market.change24h >= 0;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6 pb-6">
+      {/* Header Section */}
       <div className="flex items-start justify-between">
-        <div>
-          <h3 className="text-xl font-bold text-white">{market.name}</h3>
-          <p className="text-sm text-slate-400">{market.symbol}</p>
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-800 border border-white/5 text-sm font-bold text-neutral-300 shadow-inner">
+            {market.symbol.substring(0, 2)}
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-white leading-none">
+              {market.name}
+            </h3>
+            <p className="text-sm font-mono text-neutral-500 mt-1">
+              {market.symbol}/USD
+            </p>
+          </div>
         </div>
 
-        <TrendingUp
-          className={`h-6 w-6 ${
-            isPositive ? "text-emerald-500" : "text-rose-500"
-          }`}
-        />
+        <div className="text-right">
+          <p className="text-2xl font-bold text-white font-mono tracking-tight">
+            $
+            {price.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </p>
+          <div
+            className={`flex items-center justify-end gap-1 text-sm font-bold ${
+              isPositive ? "text-emerald-500" : "text-rose-500"
+            }`}
+          >
+            {isPositive ? (
+              <TrendingUp className="h-3 w-3" />
+            ) : (
+              <TrendingDown className="h-3 w-3" />
+            )}
+            {isPositive ? "+" : ""}
+            {market.change24h.toFixed(2)}%
+          </div>
+        </div>
       </div>
 
-      {/* Price */}
-      <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-4">
-        <p className="text-xs text-slate-400 mb-1">{market.basePrice}</p>
-        <PriceChart/>
+      {/* Chart Container */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/5 p-4 min-h-[250px] shadow-inner">
+        <div className="h-[325px] w-full">
+          <PriceChart />
+        </div>
       </div>
 
-      {/* Stats */}
-      {/* <div className="grid grid-cols-2 gap-4 text-sm">
-        <div className="rounded-lg bg-slate-900/40 p-3">
-          <p className="text-slate-400">24h Volume</p>
-          <p className="font-semibold text-white">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-white/5 bg-neutral-900/30 p-3">
+          <p className="text-xs text-neutral-500 mb-1 flex items-center gap-1">
+            <Info className="w-3 h-3" /> 24h Volume
+          </p>
+          <p className="font-mono text-sm text-neutral-200">
             ${(market.volume24h || 0).toLocaleString()}
           </p>
         </div>
-        <div className="rounded-lg bg-slate-900/40 p-3">
-          <p className="text-slate-400">Market ID</p>
-          <p className="font-mono text-xs text-slate-300 truncate">
-            {market.id}
+        <div className="rounded-xl border border-white/5 bg-neutral-900/30 p-3">
+          <p className="text-xs text-neutral-500 mb-1">Index Base</p>
+          <p className="font-mono text-sm text-neutral-200">
+            {(market.basePrice || 0).toLocaleString()}
           </p>
         </div>
-      </div> */}
+      </div>
 
-      {/* Actions */}
+      {/* Trade Button (CTA) */}
       <button
         onClick={onTrade}
-        className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-500"
+        className="group relative w-full overflow-hidden rounded-xl bg-emerald-600 py-4 text-base font-bold text-white shadow-lg shadow-emerald-900/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-900/40 active:scale-[0.98]"
       >
-        Trade {market.symbol}
+        <span className="relative z-10 flex items-center justify-center gap-2">
+          Trade {market.symbol}
+          <TrendingUp className="w-4 h-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+        </span>
+        {/* Shine Effect Animation */}
+        <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-shimmer" />
       </button>
     </div>
   );

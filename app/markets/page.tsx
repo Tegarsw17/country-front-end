@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useReadContract } from "wagmi";
 import { formatUnits } from "viem";
-import { Search, TrendingUp, Lock } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, Lock, Globe, BarChart3 } from "lucide-react";
 import { useMarkets, Market } from "@/hooks/useMarkets";
 import { COUNTRY_REGISTRY_ADDRESS } from "@/config/addresses";
 import { CountryRegistryAbi } from "@/config/abis";
@@ -53,8 +53,6 @@ export default function MarketsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMarket, setSelectedMarket] = useState<Market | null>(null);
 
-
-  // Update Harga Real-time (useCallback mencegah infinite loop di useEffect child)
   const handlePriceUpdate = useCallback((id: string, price: number) => {
     setPrices((prev) => {
       if (prev[id] === price) return prev;
@@ -64,7 +62,6 @@ export default function MarketsPage() {
 
   const handleNavigateToTrade = (marketId: string) => {
     router.push(`/trade`);
-    // router.push(`/trade/${marketId}`);
   };
 
   const filterMarkets = (markets: any[]) => {
@@ -77,29 +74,25 @@ export default function MarketsPage() {
 
   const handleMarketClick = (mkt: Market) => {
     setSelectedMarket(mkt);
-  // if (window.innerWidth < 768) {
-  //   setSelectedMarket(mkt);
-  // } else {
-  //   handleNavigateToTrade(mkt.id);
-  // }
-};
-
+  };
 
   const activeFiltered = filterMarkets(contractMarkets);
   const comingSoonFiltered = filterMarkets(COMING_SOON_MARKETS);
 
   if (isLoading) {
     return (
-      <div className="flex h-[70vh] items-center justify-center text-slate-400">
-        <p className="animate-pulse text-xl font-semibold">
-          Loading Markets...
-        </p>
+      <div className="flex h-[70vh] flex-col items-center justify-center gap-4 text-neutral-500">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+        <p className="animate-pulse font-medium">Loading Markets...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen px-4 py-8 md:px-8">
+    <div className="min-h-screen bg-black px-4 py-8 md:px-8 relative overflow-hidden">
+      {/* Background Ambient Glow */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-500/5 blur-[120px] -z-10 pointer-events-none" />
+
       {/* Background Fetchers */}
       {contractMarkets.map((mkt) => (
         <MarketPriceFetcher
@@ -109,31 +102,36 @@ export default function MarketsPage() {
         />
       ))}
 
-      <div className="mx-auto max-w-5xl space-y-8">
+      <div className="mx-auto max-w-5xl space-y-10">
         {/* === HEADER & SEARCH === */}
-        <div className="space-y-4">
-          <h1 className="text-3xl font-bold text-white">Markets</h1>
+        <div className="space-y-6">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl font-bold text-white tracking-tight">Global Markets</h1>
+            <p className="text-neutral-400">Trade decentralized country indexes with leverage.</p>
+          </div>
 
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Search className="h-5 w-5 text-slate-500" />
+          <div className="relative group">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 transition-colors group-focus-within:text-emerald-500 text-neutral-500">
+              <Search className="h-5 w-5" />
             </div>
             <input
               type="text"
-              placeholder="Search a country (e.g. Indonesia, USA)..."
+              placeholder="Search country or symbol..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="block w-full rounded-xl border border-slate-800 bg-slate-900/50 py-4 pl-10 pr-4 text-sm text-slate-200 placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="block w-full rounded-2xl border border-neutral-800 bg-neutral-900/50 backdrop-blur-md py-4 pl-12 pr-4 text-sm text-white placeholder-neutral-600 shadow-sm transition-all focus:border-emerald-500/50 focus:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
             />
           </div>
         </div>
 
         {/* === TOP COUNTRY (ACTIVE) === */}
         {activeFiltered.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-slate-300">
-              Top Countries
-            </h2>
+          <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
+            <div className="flex items-center gap-2 text-neutral-300">
+              <TrendingUp className="h-5 w-5 text-emerald-500" />
+              <h2 className="text-lg font-semibold">Top Performers</h2>
+            </div>
+            
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {activeFiltered.map((mkt) => {
                 const currentPrice = prices[mkt.id] || 0;
@@ -142,47 +140,43 @@ export default function MarketsPage() {
                 return (
                   <div
                     key={mkt.id}
-                    // onClick={() => handleNavigateToTrade(mkt.id)}
-                    // onClick={() => handleMarketClick(mkt)}
-                    onClick={() => console.log("ini di klik oi")}
-                    className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40 p-5 transition-all hover:border-emerald-500/50 hover:bg-slate-900/80"
+                    onClick={() => handleMarketClick(mkt)}
+                    className="group relative cursor-pointer overflow-hidden rounded-3xl border border-white/5 bg-neutral-900/40 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/30 hover:bg-neutral-900/60 hover:shadow-2xl hover:shadow-emerald-900/10"
                   >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-slate-300">
-                          {mkt.symbol.substring(0, 2)}
-                        </div>
-                        <h3 className="font-bold text-white">{mkt.name}</h3>
-                        <p className="text-xs text-slate-400">{mkt.symbol}</p>
-                      </div>
-                      <div className="text-right">
-                        <TrendingUp
-                          className={`h-6 w-6 ${
-                            isPositive ? "text-emerald-500" : "text-rose-500"
-                          }`}
-                        />
-                      </div>
-                    </div>
+                    {/* Gradient Overlay on Hover */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:from-emerald-500/5 group-hover:opacity-100" />
 
-                    <div className="mt-6 flex items-end justify-between">
-                      <div>
-                        <p className="text-xs text-slate-500">Oracle Price</p>
-                        <p className="text-xl font-bold text-slate-100">
-                          $
-                          {currentPrice.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                          })}
-                        </p>
+                    <div className="relative z-10 flex flex-col h-full justify-between gap-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-800 border border-white/5 text-sm font-bold text-neutral-300 shadow-inner">
+                            {mkt.symbol.substring(0, 2)}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-white text-lg leading-tight">{mkt.name}</h3>
+                            <span className="text-xs font-mono text-neutral-500">{mkt.symbol}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div
-                        className={`rounded-lg px-2 py-1 text-xs font-medium ${
-                          isPositive
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : "bg-rose-500/10 text-rose-400"
-                        }`}
-                      >
-                        {isPositive ? "+" : ""}
-                        {mkt.change24h.toFixed(2)}%
+
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-neutral-500 mb-1">Index Price</p>
+                          <p className="text-2xl font-bold text-white tracking-tight font-mono">
+                            ${currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div
+                          className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+                            isPositive
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                          }`}
+                        >
+                          {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                          {mkt.change24h >= 0 ? "+" : ""}
+                          {mkt.change24h.toFixed(2)}%
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -193,122 +187,117 @@ export default function MarketsPage() {
         )}
 
         {/* === ALL COUNTRIES (LIST VIEW) === */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-slate-300">All Markets</h2>
+        <div className="space-y-5 animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out">
+          <div className="flex items-center gap-2 text-neutral-300">
+            <Globe className="h-5 w-5 text-neutral-500" />
+            <h2 className="text-lg font-semibold">All Markets</h2>
+          </div>
 
-          <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/30">
+          <div className="overflow-hidden rounded-3xl border border-white/5 bg-neutral-900/30 backdrop-blur-sm">
             {/* Header */}
-            <div className="grid grid-cols-12 border-b border-slate-800 bg-slate-900/80 px-4 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">
-              <div className="col-span-5 md:col-span-4">Country</div>
+            <div className="grid grid-cols-12 border-b border-white/5 bg-white/[0.02] px-6 py-4 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+              <div className="col-span-5 md:col-span-4 pl-2">Country</div>
               <div className="col-span-4 md:col-span-3 text-right">Price</div>
-              <div className="col-span-3 md:col-span-3 text-right hidden md:block">
-                Volume (24h)
-              </div>
-              <div className="col-span-3 md:col-span-2 text-right">Action</div>
+              <div className="col-span-3 md:col-span-3 text-right hidden md:block">Volume (24h)</div>
+              <div className="col-span-3 md:col-span-2 text-right pr-2">Analytics</div>
             </div>
 
-            {/* Active List */}
-            {activeFiltered.map((mkt) => (
-              <div
-                key={mkt.id}
-                // onClick={() => handleMarketClick(mkt)}
-                
-                className="grid cursor-pointer grid-cols-12 items-center border-b border-slate-800/50 px-4 py-4 transition-colors hover:bg-slate-800/40"
-              >
-                <div className="col-span-5 flex items-center gap-3 md:col-span-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[10px] font-bold text-slate-400">
-                    {mkt.symbol.substring(0, 2)}
+            <div className="divide-y divide-white/5">
+              {/* Active List */}
+              {activeFiltered.map((mkt) => (
+                <div
+                  key={mkt.id}
+                  onClick={() => handleMarketClick(mkt)}
+                  className="group grid cursor-pointer grid-cols-12 items-center px-6 py-4 transition-colors hover:bg-white/[0.04]"
+                >
+                  <div className="col-span-5 flex items-center gap-4 md:col-span-4">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-800 text-[10px] font-bold text-neutral-400 border border-white/5 group-hover:border-emerald-500/30 group-hover:text-emerald-500 transition-colors">
+                      {mkt.symbol.substring(0, 2)}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-neutral-200 group-hover:text-white transition-colors">{mkt.name}</p>
+                      <p className="text-xs text-neutral-500 md:hidden">{mkt.symbol}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-slate-200">{mkt.name}</p>
-                    <p className="text-xs text-slate-500 md:hidden">
-                      {mkt.symbol}
+                  <div className="col-span-4 text-right md:col-span-3">
+                    <p className="font-mono font-medium text-neutral-200">
+                      ${(prices[mkt.id] || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </p>
+                    <p className={`text-xs font-medium ${mkt.change24h >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                      {mkt.change24h >= 0 ? "+" : ""}{mkt.change24h.toFixed(2)}%
                     </p>
                   </div>
+                  <div className="col-span-3 text-right hidden md:block text-neutral-400 text-sm font-mono">
+                    ${(mkt.volume24h || 0).toLocaleString()}
+                  </div>
+                  <div className="col-span-3 flex justify-end md:col-span-2">
+                     <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMarketClick(mkt);
+                        }} 
+                        className="group/btn flex items-center gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-1.5 text-xs font-semibold text-neutral-400 transition-all hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-500"
+                      >
+                        <BarChart3 className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Chart</span>
+                     </button>
+                  </div>
                 </div>
-                <div className="col-span-4 text-right md:col-span-3">
-                  <p className="font-medium text-slate-200">
-                    $
-                    {(prices[mkt.id] || 0).toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}
-                  </p>
-                  <p
-                    className={`text-xs ${
-                      mkt.change24h >= 0 ? "text-emerald-500" : "text-rose-500"
-                    }`}
-                  >
-                    {mkt.change24h >= 0 ? "+" : ""}
-                    {mkt.change24h.toFixed(2)}%
-                  </p>
-                </div>
-                <div className="col-span-3 text-right hidden md:block text-slate-400 text-sm">
-                  ${(mkt.volume24h || 0).toLocaleString()}
-                </div>
-                <div className="col-span-3 text-right md:col-span-2">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // handleNavigateToTrade(mkt.id);
-                      handleMarketClick(mkt);
-                    }} 
-                    className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500">
-                    Chart
-                  </button>
-                  {/* <button onClick={() => handleMarketClick(mkt)} className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500">
-                    chart
-                  </button> */}
-                </div>
-              </div>
-            ))}
+              ))}
 
-            {/* Coming Soon List */}
-            {comingSoonFiltered.map((mkt) => (
-              <div
-                key={mkt.id}
-                className="grid grid-cols-12 items-center border-b border-slate-800/50 px-4 py-4 opacity-60"
-              >
-                <div className="col-span-5 flex items-center gap-3 md:col-span-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[10px] font-bold text-slate-500">
-                    {mkt.symbol?.substring(0, 2)}
+              {/* Coming Soon List */}
+              {comingSoonFiltered.map((mkt) => (
+                <div
+                  key={mkt.id}
+                  className="grid grid-cols-12 items-center px-6 py-4 opacity-50 grayscale transition-all hover:opacity-70 hover:grayscale-0"
+                >
+                  <div className="col-span-5 flex items-center gap-4 md:col-span-4">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-800 text-[10px] font-bold text-neutral-600 border border-white/5">
+                      {mkt.symbol?.substring(0, 2)}
+                    </div>
+                    <div>
+                      <p className="font-medium text-neutral-500">{mkt.name}</p>
+                      <span className="text-[10px] font-mono border border-neutral-800 bg-neutral-900 px-1.5 py-0.5 rounded text-neutral-600">SOON</span>
+                    </div>
                   </div>
-                  <p className="font-medium text-slate-400">{mkt.name}</p>
-                </div>
-                <div className="col-span-4 text-right md:col-span-3">
-                  <p className="text-sm text-slate-600">---</p>
-                </div>
-                <div className="col-span-3 text-right hidden md:block text-slate-600 text-sm">
-                  ---
-                </div>
-                <div className="col-span-3 flex justify-end md:col-span-2">
-                  <div className="flex items-center gap-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-400">
-                    <Lock className="h-3 w-3" /> Coming Soon
+                  <div className="col-span-4 text-right md:col-span-3">
+                    <p className="text-sm text-neutral-600 font-mono">---</p>
+                  </div>
+                  <div className="col-span-3 text-right hidden md:block text-neutral-600 text-sm">
+                    ---
+                  </div>
+                  <div className="col-span-3 flex justify-end md:col-span-2">
+                    <div className="flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1 text-[10px] font-medium text-neutral-500">
+                      <Lock className="h-3 w-3" /> Locked
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
 
             {/* Empty State */}
             {activeFiltered.length === 0 && comingSoonFiltered.length === 0 && (
-              <div className="p-8 text-center text-slate-500">
-                No country found matching "{searchQuery}"
+              <div className="flex flex-col items-center justify-center py-12 text-neutral-500">
+                <Search className="h-10 w-10 opacity-20 mb-3" />
+                <p>No country found matching "{searchQuery}"</p>
               </div>
-            )}
-
-            {selectedMarket && (
-              <BottomSheet
-                isOpen={!!selectedMarket}
-                onClose={() => setSelectedMarket(null)}
-              >
-                <MarketBottomSheet
-                  market={selectedMarket}
-                  price={prices[selectedMarket.id] || 0}
-                  onTrade={() => handleNavigateToTrade(selectedMarket.id)}
-                />
-              </BottomSheet>
             )}
           </div>
         </div>
+
+        {/* Bottom Sheet */}
+        {selectedMarket && (
+          <BottomSheet
+            isOpen={!!selectedMarket}
+            onClose={() => setSelectedMarket(null)}
+          >
+            <MarketBottomSheet
+              market={selectedMarket}
+              price={prices[selectedMarket.id] || 0}
+              onTrade={() => handleNavigateToTrade(selectedMarket.id)}
+            />
+          </BottomSheet>
+        )}
       </div>
     </div>
   );

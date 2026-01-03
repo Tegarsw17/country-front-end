@@ -23,7 +23,7 @@ const cleanSymbol = (hexStr: string): string => {
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  
+
   // State
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -46,13 +46,18 @@ export function Navbar() {
   const filteredCountries = searchableCountries.filter((c) => {
     if (!searchQuery) return false;
     const q = searchQuery.toLowerCase();
-    return c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q);
+    return (
+      c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q)
+    );
   });
 
   // Click Outside Handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {
         setIsSearchFocused(false);
       }
     };
@@ -61,7 +66,7 @@ export function Navbar() {
   }, []);
 
   const handleSelectCountry = (id: string) => {
-    router.push(`/trade/${id}`);
+    router.push(`/trade`);
     setSearchQuery("");
     setIsSearchFocused(false);
   };
@@ -69,7 +74,6 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full bg-black/80 backdrop-blur-md border-b border-neutral-800">
       <nav className="flex w-full items-center justify-between px-4 py-3 lg:px-6">
-        
         {/* Left: Brand & Nav */}
         <div className="flex items-center gap-4 lg:gap-8">
           <Link href="/" className="flex items-center gap-2">
@@ -81,14 +85,19 @@ export function Navbar() {
           {/* Desktop Nav Items */}
           <div className="hidden md:flex items-center gap-1">
             {mainNav.map((item) => {
-              const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+              const isActive =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.href);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={[
                     "rounded-full px-3 py-1.5 text-sm font-medium transition-all",
-                    isActive ? "bg-neutral-900 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900",
+                    isActive
+                      ? "bg-neutral-900 text-white"
+                      : "text-neutral-400 hover:text-white hover:bg-neutral-900",
                   ].join(" ")}
                 >
                   {item.label}
@@ -100,10 +109,13 @@ export function Navbar() {
 
         {/* Right: Search, Network, Wallet */}
         <div className="flex items-center gap-2 lg:gap-3">
-          
           {/* Search Bar (Responsive Width) */}
           <div className="hidden md:block relative" ref={searchContainerRef}>
-            <div className={`relative flex items-center transition-all duration-300 ${isSearchFocused || searchQuery ? 'w-48 lg:w-64' : 'w-40 lg:w-48'}`}>
+            <div
+              className={`relative flex items-center transition-all duration-300 ${
+                isSearchFocused || searchQuery ? "w-48 lg:w-64" : "w-40 lg:w-48"
+              }`}
+            >
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <Search className="h-4 w-4 text-neutral-500" />
               </div>
@@ -116,7 +128,10 @@ export function Navbar() {
                 onFocus={() => setIsSearchFocused(true)}
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="absolute right-2 text-neutral-500 hover:text-neutral-300">
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 text-neutral-500 hover:text-neutral-300"
+                >
                   <X className="h-3 w-3" />
                 </button>
               )}
@@ -137,14 +152,20 @@ export function Navbar() {
                           {country.symbol.substring(0, 2)}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-neutral-200">{country.name}</p>
-                          <p className="text-xs text-neutral-500">{country.symbol}</p>
+                          <p className="text-sm font-medium text-neutral-200">
+                            {country.name}
+                          </p>
+                          <p className="text-xs text-neutral-500">
+                            {country.symbol}
+                          </p>
                         </div>
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <div className="px-4 py-6 text-center text-sm text-neutral-500">No country found.</div>
+                  <div className="px-4 py-6 text-center text-sm text-neutral-500">
+                    No country found.
+                  </div>
                 )}
               </div>
             )}
@@ -152,25 +173,55 @@ export function Navbar() {
 
           {/* RainbowKit Buttons */}
           <ConnectButton.Custom>
-            {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
+            {({
+              account,
+              chain,
+              openAccountModal,
+              openChainModal,
+              openConnectModal,
+              mounted,
+            }) => {
               const connected = mounted && account && chain;
 
               return (
-                <div {...(!mounted && { "aria-hidden": true, style: { opacity: 0, pointerEvents: "none", userSelect: "none" } })}>
+                <div
+                  {...(!mounted && {
+                    "aria-hidden": true,
+                    style: {
+                      opacity: 0,
+                      pointerEvents: "none",
+                      userSelect: "none",
+                    },
+                  })}
+                >
                   {!connected ? (
-                    <button onClick={openConnectModal} className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-900/20">
+                    <button
+                      onClick={openConnectModal}
+                      className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-900/20"
+                    >
                       Connect
                     </button>
                   ) : chain.unsupported ? (
-                    <button onClick={openChainModal} className="rounded-full bg-rose-500/10 border border-rose-500/50 px-3 py-1.5 text-xs font-bold text-rose-400 hover:bg-rose-500/20">
+                    <button
+                      onClick={openChainModal}
+                      className="rounded-full bg-rose-500/10 border border-rose-500/50 px-3 py-1.5 text-xs font-bold text-rose-400 hover:bg-rose-500/20"
+                    >
                       Wrong Network
                     </button>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <button onClick={openChainModal} className="group flex items-center justify-center gap-1 rounded-full border border-neutral-800 bg-neutral-900 p-1.5 pr-2 hover:border-neutral-700 hover:bg-neutral-800 transition-all" title={chain.name}>
+                      <button
+                        onClick={openChainModal}
+                        className="group flex items-center justify-center gap-1 rounded-full border border-neutral-800 bg-neutral-900 p-1.5 pr-2 hover:border-neutral-700 hover:bg-neutral-800 transition-all"
+                        title={chain.name}
+                      >
                         <div className="relative h-6 w-6 overflow-hidden rounded-full">
                           {chain.hasIcon && chain.iconUrl ? (
-                            <img alt={chain.name} src={chain.iconUrl} className="h-full w-full object-cover" />
+                            <img
+                              alt={chain.name}
+                              src={chain.iconUrl}
+                              className="h-full w-full object-cover"
+                            />
                           ) : (
                             <div className="h-full w-full bg-neutral-700"></div>
                           )}
@@ -178,10 +229,15 @@ export function Navbar() {
                         <ChevronDown className="h-3 w-3 text-neutral-500 group-hover:text-neutral-300" />
                       </button>
 
-                      <button onClick={openAccountModal} className="flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 py-1 pl-1 pr-1 lg:pl-3 hover:border-neutral-700 hover:bg-neutral-800 transition-all">
+                      <button
+                        onClick={openAccountModal}
+                        className="flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 py-1 pl-1 pr-1 lg:pl-3 hover:border-neutral-700 hover:bg-neutral-800 transition-all"
+                      >
                         {/* Hide balance on tablet to save space */}
                         <span className="hidden lg:block text-xs font-medium text-neutral-300">
-                          {account.displayBalance ? ` ${account.displayBalance}` : ""}
+                          {account.displayBalance
+                            ? ` ${account.displayBalance}`
+                            : ""}
                         </span>
                         <span className="rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-bold text-white border border-neutral-700">
                           {account.displayName}
