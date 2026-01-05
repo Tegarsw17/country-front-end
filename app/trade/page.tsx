@@ -1,6 +1,6 @@
-import { Suspense } from 'react';
-import { fetchDerivativeNews } from '@/lib/newsClient';
-import SwipeCardClient from '@/components/SwipeCardClient';
+import { Suspense } from "react";
+import { fetchDerivativeNews } from "@/lib/newsClient";
+import SwipeCardClient from "@/components/SwipeCardClient";
 
 async function NewsSwipeContent() {
   const newsList = await fetchDerivativeNews();

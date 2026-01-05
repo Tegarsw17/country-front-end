@@ -21,9 +21,9 @@ export function useTrade() {
   ) => {
     try {
       const hexString = stringToHex(countryCodeStr);
-      
+
       const countryCode = keccak256(hexString);
-      
+
       const collateralAmount = parseUnits(amountStr, 18);
 
       // Debugging Logs
@@ -33,7 +33,8 @@ export function useTrade() {
       console.log(`Generated Key (Keccak): ${countryCode}`);
       console.log(`Amount: ${amountStr} (${collateralAmount})`);
 
-      const functionName = side === "LONG" ? "openLongPosition" : "openShortPosition";
+      const functionName =
+        side === "LONG" ? "openLongPosition" : "openShortPosition";
 
       const hash = await writeContractAsync({
         address: COUNTRY_TRADING_ADDRESS,
