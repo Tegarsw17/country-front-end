@@ -24,13 +24,8 @@ export function PositionsList({
 
   return (
     <div className="space-y-4">
-      {positionIds?.map((id, index) => (
-        <PositionCard
-          key={id.toString()}
-          positionId={id}
-          index={index}
-          onUpdate={onUpdate}
-        />
+      {positionIds?.map((id) => (
+        <PositionCard key={id.toString()} positionId={id} onUpdate={onUpdate} />
       ))}
     </div>
   );

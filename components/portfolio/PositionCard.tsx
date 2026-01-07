@@ -3,13 +3,7 @@
 import { useState } from "react";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { formatUnits } from "viem";
-import {
-  Loader2,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  ChevronDown,
-} from "lucide-react";
+import { Loader2, AlertTriangle, ChevronDown } from "lucide-react";
 import {
   COUNTRY_TRADING_ADDRESS,
   COUNTRY_REGISTRY_ADDRESS,
@@ -20,17 +14,14 @@ import { PartialCloseModal } from "./PartialCloseModal";
 export function PositionCard({
   positionId,
   onUpdate,
-  index,
 }: {
   positionId: bigint;
   onUpdate: () => void;
-  index: number;
 }) {
   const { address } = useAccount();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPartialOpen, setIsPartialOpen] = useState(false);
 
-  // --- CONTRACT READS ---
   const { data: pos } = useReadContract({
     address: COUNTRY_TRADING_ADDRESS,
     abi: CountryTradingAbi,
@@ -51,7 +42,7 @@ export function PositionCard({
     abi: CountryTradingAbi,
     functionName: "getPositionPnL",
     args: [address as `0x${string}`, positionId],
-    query: { enabled: !!pos, pollInterval: 2000 },
+    query: { enabled: !!pos, refetchInterval: 2000 },
   });
 
   const { writeContractAsync: closeFull, isPending: isClosingFull } =
@@ -59,7 +50,6 @@ export function PositionCard({
 
   if (!pos || pos.entryPrice === 0n) return null;
 
-  // --- DATA PROCESSING ---
   const countryName = countryData ? (countryData as any).name : "Loading...";
   const countryCode = countryName.substring(0, 2).toUpperCase();
   const size = parseFloat(formatUnits(pos.positionSize, 18));
@@ -74,11 +64,9 @@ export function PositionCard({
     markPrice = parseFloat(formatUnits((pnlData as any)[1], 18));
   }
 
-  // ROE %
   const roe = (pnl / collateral) * 100;
   const isProfit = pnl >= 0;
 
-  // Est. Liq Price
   const threshold = 0.85;
   const liqPrice = isLong
     ? entryPrice * (1 - (collateral * threshold) / size)
@@ -107,12 +95,10 @@ export function PositionCard({
             : "border-white/5 hover:border-white/10 hover:bg-[#0A0A0A]/80"
         }`}
       >
-        {/* MAIN ROW (Clickable) */}
         <div
           onClick={() => setIsExpanded(!isExpanded)}
           className="p-5 flex justify-between md:grid md:grid-cols-12 gap-4 items-center cursor-pointer relative"
         >
-          {/* 1. Asset & Side */}
           <div className="col-span-2 md:col-span-3 flex items-center gap-4">
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs border shadow-lg transition-shadow ${
@@ -149,7 +135,6 @@ export function PositionCard({
             </div>
           </div>
 
-          {/* 2. Size */}
           <div className="hidden md:block col-span-2 text-right">
             <p className="text-sm font-mono text-white">
               {size.toFixed(2)} Units
@@ -159,7 +144,6 @@ export function PositionCard({
             </p>
           </div>
 
-          {/* 3. Prices */}
           <div className="hidden md:block col-span-3 text-right">
             <div className="text-sm font-mono text-neutral-300">
               <span className="text-neutral-500 text-[10px] mr-2">ENTRY</span>$
@@ -175,7 +159,6 @@ export function PositionCard({
             </div>
           </div>
 
-          {/* 4. Liq Price */}
           <div className="hidden md:block col-span-2 text-right">
             <p className="text-sm font-mono text-orange-400 flex items-center justify-end gap-1">
               <AlertTriangle className="w-3 h-3 opacity-50" />$
@@ -183,7 +166,6 @@ export function PositionCard({
             </p>
           </div>
 
-          {/* 5. PnL */}
           <div className="col-span-2 md:col-span-2 text-right flex flex-col items-end justify-center">
             <p
               className={`text-sm font-bold font-mono ${
@@ -203,8 +185,6 @@ export function PositionCard({
           </div>
         </div>
 
-        {/* EXPANDED ACTIONS (ANIMATED) */}
-        {/* Menggunakan grid-template-rows untuk transisi tinggi yang mulus */}
         <div
           className={`grid transition-all duration-300 ease-in-out ${
             isExpanded
@@ -214,7 +194,6 @@ export function PositionCard({
         >
           <div className="overflow-hidden">
             <div className="border-t border-white/5 bg-white/[0.02] p-4 flex flex-col md:flex-row justify-between items-center gap-4">
-              {/* Mobile Details (Only visible on small screens) */}
               <div className="md:hidden w-full grid grid-cols-2 gap-4 text-xs mb-2">
                 <div>
                   <span className="text-neutral-500 block mb-1">
