@@ -1,4 +1,4 @@
-import { Wallet, BarChart3, TrendingUp } from 'lucide-react';
+import { Wallet, BarChart3, TrendingUp } from "lucide-react";
 // config/navigation.ts
 export type NavItem = {
   href: string;
@@ -9,9 +9,7 @@ export type NavItem = {
 export const bottomNav: NavItem[] = [
   { href: "/markets", label: "Markets", icon: BarChart3 },
   { href: "/trade", label: "Trade", icon: TrendingUp },
-  { href: "/portofolio", label: "Portofolio", icon: Wallet },
+  { href: "/portfolio", label: "Portfolio", icon: Wallet },
 ];
 
-export const mainNav: NavItem[] = [
-  ...bottomNav
-];
+export const mainNav: NavItem[] = [...bottomNav];
