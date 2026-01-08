@@ -58,7 +58,7 @@ export function MarketBottomSheet({ market, price, onTrade }: Props) {
       {/* Chart Container */}
       <div className="relative overflow-hidden rounded-2xl border border-white/5 p-4 min-h-[250px] shadow-inner">
         <div className="h-[325px] w-full">
-          <PriceChart />
+          <PriceChart countryCode={market.symbol.substring(0, 2)}/>
         </div>
       </div>
 

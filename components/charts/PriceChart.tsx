@@ -5,19 +5,23 @@ import {
   createChart,
   ColorType,
   IChartApi,
-  CandlestickData,
-  CandlestickSeries,
   LineSeries,
   LineData,
+  ISeriesApi,
 } from 'lightweight-charts';
+import { useOraclePrices } from '@/hooks/useOraclePrices';
 
-import { mockLogs } from '@/mocks/priceLogs';
-import { toSeries } from '@/lib/priceSeries';
-import { toCandles } from '@/lib/toCandle';
+interface PriceChartProps {
+  countryCode: string;
+}
 
-export default function PriceChart() {
+
+export default function PriceChart({ countryCode }: PriceChartProps) {
   const ref = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const { data, loading } = useOraclePrices(countryCode);
+
 
   useEffect(() => {
     if (!ref.current) return;
@@ -35,48 +39,29 @@ export default function PriceChart() {
       height: 320,
     });
 
-    const mockSeries = [
-    { time: '2019-04-11', value: 80.01 },
-    { time: '2019-04-12', value: 96.63 },
-    { time: '2019-04-13', value: 76.64 },
-    { time: '2019-04-14', value: 81.89 },
-    { time: '2019-04-15', value: 74.43 },
-    { time: '2019-04-16', value: 80.01 },
-    { time: '2019-04-17', value: 96.63 },
-    { time: '2019-04-18', value: 76.64 },
-    { time: '2019-04-19', value: 81.89 },
-    { time: '2019-04-20', value: 74.43 },
-]
-
     const lineSeries = chart.addSeries(LineSeries,{
       color: '#22c55e',
       lineWidth: 2,  
     })
-    
 
-    // const candleSeries = chart.addSeries(CandlestickSeries,{
-    //     upColor: '#22c55e',
-    //   downColor: '#ef4444',
-    //   borderVisible: false,
-    //   wickUpColor: '#22c55e',
-    //   wickDownColor: '#ef4444',
-    // })
-
-    // MOCK FLOW
-    const series = toSeries(mockLogs);
-    const candles = toCandles(series, 60);
-
-    lineSeries.setData(series as LineData[])
-
-    // candleSeries.setData(
-    //   candles as CandlestickData[]
-    // );
-
-    chart.timeScale().fitContent();
     chartRef.current = chart;
+    seriesRef.current = lineSeries;
 
-    return () => chart.remove();
+    return () => {
+      chart.remove();
+      chartRef.current = null;
+      seriesRef.current = null;
+    }
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!seriesRef.current) return;
+    if (!data || data.length === 0) return;
+
+    seriesRef.current.setData(data as LineData[]);
+    chartRef.current?.timeScale().fitContent();
+  }, [data, loading]);
 
   return (
     <div

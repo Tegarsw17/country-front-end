@@ -25,7 +25,7 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed pb-14 inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
       {/* Overlay */}
       <div
         onClick={onClose}
@@ -37,7 +37,7 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
         className="
           relative w-full max-w-lg
           rounded-t-2xl
-          bg-[#020617]
+          bg-black
           border-t border-slate-800
           px-5 pb-6 pt-3
           animate-slide-up
