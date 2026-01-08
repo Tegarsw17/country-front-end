@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { mainNav } from "@/config/Navigation";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useReadContract } from "wagmi";
-import { Search, X, ChevronDown, Command } from "lucide-react";
+import { Search, X, ChevronDown } from "lucide-react";
 import { hexToString, trim } from "viem";
 import { COUNTRY_REGISTRY_ADDRESS } from "@/config/addresses";
 import { CountryRegistryAbi } from "@/config/abis";
@@ -24,19 +24,16 @@ export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // State
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch Countries
   const { data: rawCountries } = useReadContract({
     address: COUNTRY_REGISTRY_ADDRESS,
     abi: CountryRegistryAbi,
     functionName: "getAllCountries",
   });
 
-  // Filter Logic
   const searchableCountries = (rawCountries || []).map((c) => ({
     id: c.countryCode,
     name: c.name,
@@ -51,7 +48,6 @@ export function Navbar() {
     );
   });
 
-  // Click Outside Handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -72,19 +68,15 @@ export function Navbar() {
   };
 
   return (
-    // Update: Background lebih gelap (#020202) dengan border white/5
     <header className="sticky top-0 z-50 w-full bg-[#020202]/80 backdrop-blur-md border-b border-white/5 supports-[backdrop-filter]:bg-[#020202]/60">
       <nav className="flex w-full items-center justify-between px-6 py-2">
-        {/* Left: Brand & Nav */}
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2 group">
-            {/* Logo Text */}
             <span className="text-xl font-bold tracking-tight text-white group-hover:opacity-80 transition-opacity">
               Geo<span className="text-emerald-500">Bit</span>
             </span>
           </Link>
 
-          {/* Desktop Nav Items */}
           <div className="hidden md:flex items-center gap-1">
             {mainNav.map((item) => {
               const isActive =
@@ -109,9 +101,7 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* Right: Search, Network, Wallet */}
         <div className="flex items-center gap-3">
-          {/* Search Bar */}
           <div className="hidden md:block relative" ref={searchContainerRef}>
             <div
               className={`relative flex items-center transition-all duration-300 ${
@@ -141,7 +131,6 @@ export function Navbar() {
               )}
             </div>
 
-            {/* Search Dropdown */}
             {isSearchFocused && searchQuery && (
               <div className="absolute right-0 top-full mt-2 w-72 rounded-xl border border-white/10 bg-[#0A0A0A]/95 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
                 <div className="px-3 py-2 border-b border-white/5">
@@ -165,7 +154,7 @@ export function Navbar() {
                             {country.name}
                           </p>
                           <p className="text-[10px] text-neutral-500 font-mono">
-                            {country.symbol}-PERP
+                            {country.symbol}
                           </p>
                         </div>
                       </button>
@@ -180,7 +169,6 @@ export function Navbar() {
             )}
           </div>
 
-          {/* RainbowKit Buttons - Styled to match */}
           <ConnectButton.Custom>
             {({
               account,
@@ -242,7 +230,6 @@ export function Navbar() {
                         onClick={openAccountModal}
                         className="flex items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 py-1.5 px-1.5 hover:border-emerald-500/30 hover:bg-white/10 transition-all"
                       >
-                        {/* Address Badge */}
                         <span className="rounded-md px-2 py-1 text-xs font-mono font-bold text-white">
                           {account.displayName}
                         </span>

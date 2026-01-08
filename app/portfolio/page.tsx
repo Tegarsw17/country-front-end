@@ -7,13 +7,7 @@ import {
   useReadContracts,
   usePublicClient,
 } from "wagmi";
-import {
-  ArrowUpRight,
-  ArrowDownLeft,
-  Wallet,
-  TrendingUp,
-  Layers,
-} from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, TrendingUp, Layers } from "lucide-react";
 import { COUNTRY_TRADING_ADDRESS } from "@/config/addresses";
 import { CountryTradingAbi } from "@/config/abis";
 import { usePortfolioStats } from "@/hooks/usePortfolioStats";
@@ -120,9 +114,6 @@ export default function PortfolioPage() {
 
   return (
     <div className="min-h-screen w-full bg-[#020202] text-white font-sans pb-32 relative overflow-hidden selection:bg-emerald-500/20">
-      <div className="absolute top-[-15%] left-1/2 -translate-x-1/2 w-[80%] h-[500px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none z-0 mix-blend-screen" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none z-0" />
-
       <div className="relative z-10 max-w-6xl mx-auto px-6 pt-12 md:pt-16">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-6 animate-in fade-in slide-in-from-top-4 duration-700">
           <h1 className="text-2xl font-semibold tracking-tight text-white">
