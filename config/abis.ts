@@ -1,10 +1,14 @@
-import { parseAbi } from "viem";
+import { parseAbi, parseAbiItem } from "viem";
 
 export const CountryRegistryAbi = parseAbi([
   "function getAllCountries() external view returns ((bytes32 countryCode, string name, address priceFeed, bool isActive)[])",
   "function getCountryPrice(bytes32 countryCode) external view returns (uint256 price, uint256 timestamp)",
   "function getCountry(bytes32 countryCode) external view returns ((bytes32 countryCode, string name, address priceFeed, bool isActive))",
 ]);
+
+export const PRICE_EVENT = parseAbiItem(
+  'event PriceUpdated(uint80 indexed roundId, int256 price, uint256 updatedAt)'
+);
 
 export const CountryTradingAbi = parseAbi([
   // Write
