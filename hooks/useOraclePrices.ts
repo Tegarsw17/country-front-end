@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePublicClient, useChainId } from 'wagmi';
 import { COUNTRY_ADDRESSES } from '@/config/addresses';
 import { PRICE_EVENT } from '@/config/abis';
+import { PublicClient } from 'viem';
 
 
 export type PricePoint = {
@@ -38,7 +39,7 @@ export function useOraclePrices(countryCode:string) {
     const BLOCKS_PER_CHUNK = 9_000n; // safe < 10,000
     const BLOCKS_24H = 43_200n;      // ~24h on Mantle
 
-    async function fetchLast24HoursLogs(publicClient) {
+    async function fetchLast24HoursLogs(publicClient:PublicClient) {
         const latest = await publicClient.getBlockNumber();
 
         const fromTarget = latest - BLOCKS_24H;
@@ -67,7 +68,8 @@ export function useOraclePrices(countryCode:string) {
     }
 
     async function fetch() {
-        const logs = await fetchLast24HoursLogs(publicClient);
+      if (!publicClient) return;
+      const logs = await fetchLast24HoursLogs(publicClient);
 
       setData(
         logs.map(log => ({
